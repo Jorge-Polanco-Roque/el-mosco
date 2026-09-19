@@ -6,6 +6,10 @@
 
 **[▶ Jugar en vivo](https://jorge-polanco-roque.github.io/el-mosco/)**
 
+<br>
+
+<img src="docs/screenshot.png" alt="Un mosco y una camioneta — pantalla de título" width="820">
+
 **Una historia interactiva tierna y brutal.** Estética kawaii pastel como caballo de Troya del abismo.
 Avanzas cumpliendo retos — cada uno te hace *sentir* en las manos una etapa de la crisis.
 

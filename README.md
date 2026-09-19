@@ -6,6 +6,10 @@
 
 **[▶ Play it live](https://jorge-polanco-roque.github.io/el-mosco/)**
 
+<br>
+
+<img src="docs/screenshot.png" alt="A Mosquito and a Truck — title screen" width="820">
+
 **A cute-brutal interactive story.** Kawaii pastel visuals as a Trojan horse for the abyss.
 You advance by completing challenges — each one *makes you feel* a stage of the crisis in your own hands.
 

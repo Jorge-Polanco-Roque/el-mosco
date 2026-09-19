@@ -6,6 +6,10 @@
 
 **[▶ Jogar online](https://jorge-polanco-roque.github.io/el-mosco/)**
 
+<br>
+
+<img src="docs/screenshot.png" alt="Um mosquito e uma caminhonete — tela de título" width="820">
+
 **Uma história interativa fofa e brutal.** Estética kawaii pastel como cavalo de Troia do abismo.
 Você avança cumprindo desafios — cada um faz você *sentir* nas mãos uma etapa da crise.
 

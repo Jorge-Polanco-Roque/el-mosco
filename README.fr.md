@@ -6,6 +6,10 @@
 
 **[▶ Jouer en ligne](https://jorge-polanco-roque.github.io/el-mosco/)**
 
+<br>
+
+<img src="docs/screenshot.png" alt="Un moustique et une camionnette — écran-titre" width="820">
+
 **Une histoire interactive tendre et brutale.** Une esthétique kawaii pastel comme cheval de Troie de l'abîme.
 On progresse en relevant des défis — chacun vous fait *ressentir* entre vos mains une étape de la crise.
 

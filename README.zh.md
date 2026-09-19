@@ -6,6 +6,10 @@
 
 **[▶ 立即游玩](https://jorge-polanco-roque.github.io/el-mosco/)**
 
+<br>
+
+<img src="docs/screenshot.png" alt="一只蚊子与一辆卡车 — 标题画面" width="820">
+
 **一个可爱又残酷的互动故事。** 粉彩萌系的外表，是通往深渊的特洛伊木马。
 你通过完成挑战前进——每一个挑战都让你*亲手感受*危机的一个阶段。
 
