@@ -35,6 +35,13 @@
   .snd{position:absolute;bottom:22px;right:26px;font-weight:300;font-size:12px;letter-spacing:2px;opacity:.4;text-transform:uppercase}
   .snd.off{text-decoration:line-through;opacity:.25}
   .cap .accent{color:var(--accent)}
+  /* selector de idioma */
+  #lang{position:fixed;top:18px;right:22px;z-index:55;display:flex;gap:1px}
+  #lang button{pointer-events:auto;background:none;border:0;cursor:pointer;
+    font-family:"Londrina Solid",system-ui,sans-serif;font-size:12px;letter-spacing:1px;
+    color:var(--ink);opacity:.32;padding:4px 5px;font-weight:400}
+  #lang button.on{opacity:.95;font-weight:900}
+  body.ready #lang button{cursor:none}
   /* título grande (intro / final) */
   .big{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
        text-align:center;opacity:0;transition:opacity 1.1s;padding:20px}
@@ -59,6 +66,10 @@
 <div id="app"></div>
 <div id="fade"></div>
 <div id="err"></div>
+
+<div id="lang">
+  <button data-l="es">ES</button><button data-l="en">EN</button><button data-l="pt">PT</button><button data-l="ja">JA</button><button data-l="fr">FR</button><button data-l="zh">ZH</button>
+</div>
 
 <div class="ui">
   <div class="act" id="act"></div>
@@ -159,15 +170,157 @@ addEventListener('pointermove',e=>{
 const $act=document.getElementById('act'), $reto=document.getElementById('reto'),
       $cap=document.getElementById('cap'), $fade=document.getElementById('fade'),
       $intro=document.getElementById('intro'), $outro=document.getElementById('outro');
+// ---------- i18n ----------
+const L = {
+ es:{
+  intro_h1:`un <span class="accent">mosco</span><br>y una camioneta`, intro_sub:`una crisis existencial en 6 actos`, intro_go:`respira · toca para empezar`,
+  outro_h1:`hay que imaginar<br>al <span class="y">mosco</span> feliz`, outro_sub:`— y a ti también.`, outro_go:`fin. (o principio.)&nbsp; · &nbsp;R para revivir`,
+  snd:`♪ música · M`, actfmt:`acto {n} — {name}`,
+  n0:`el detonante`, n1:`la insignificancia`, n2:`el absurdo`, n3:`el vértigo de la libertad`, n4:`ser-para-la-muerte`, n5:`la revuelta`,
+  rt0:`sálvalo`, rs0:`toca al mosco · intento {n}/3`, rt1:`encuéntrate`, rs1:`toca el punto que eres tú`,
+  rt2:`llévalo a la cima`, rs2:`arrástralo hacia arriba · sostén el esfuerzo`, rt3:`elige`, rs3:`solo una · las demás no vuelven`,
+  rt4:`mantenlo vivo`, rs4:`tócalo para reavivarlo`, rt5:`construye algo`, rs5:`toca para crear · deja tu marca`,
+  m01:`Era martes. O jueves. Da igual.`, m02:`Un mosco cruzaba la carretera. Sin razón. Como todo.`, m03:`Entonces — una camioneta.`,
+  m0fail:`No llegaste. Nadie llega.`, m0dead:`Un instante antes zumbaba.<br>Un instante después: <b>nada</b>.<br>El universo no parpadeó.`,
+  m0you:`¿y si <b class="accent">tú</b> fueras el mosco?`, m0touch:`Lo tocaste. Por un segundo lo salvaste.<br>Solo que el segundo también pasa.`,
+  m11:`Ocho mil millones de zumbidos.<br>Cada uno seguro de ser el centro.`, m1wrong:`Ese no eras tú.`, m1end:`Ninguno era especial.<br>Tampoco tú.<br>Y sin embargo, <b>aquí sigues mirando</b>.`,
+  m21:`Despiertas. Trabajas. Duermes. Repites.`, m22:`Empujas la piedra. La piedra cae. Empujas otra vez.`, m2win1:`Lo lograste. Y mañana la piedra estará abajo otra vez.`, m2win2:`Nunca se queda arriba. <b>Ese es el punto.</b>`, m2camus:`Camus sonríe:<br><i>«La lucha hacia las cumbres basta para llenar un corazón.»</i>`,
+  m31:`Nadie escribió el guion.<br>Estás condenado a ser <b>libre</b>.`, m32:`Cada sí es mil noes.<br>Cada puerta, un cementerio de puertas.`, m3end:`Elegiste. Nunca sabrás qué había detrás de las otras.<br>Nadie lo sabe. <b>Eso es vivir.</b>`,
+  m41:`Desde que naciste, algo se agota.<br>Puedes fingir que no. La mayoría lo hace.`, m4out1:`Se apagó. Siempre iba a apagarse.`, m4out2:`La muerte no es el enemigo. Es el <b>marco</b>.<br>Sin el borde, el dibujo no existe.`,
+  m51:`El mosco murió sin sentido. Como todos.`, m52:`Y justo por eso — el sentido no se encuentra. <b>Se fabrica.</b>`, m5end:`No importa que nadie lo vea. Lo hiciste <b>tú</b>.<br>Eso ya es rebelión.`
+ },
+ en:{
+  intro_h1:`a <span class="accent">mosquito</span><br>and a truck`, intro_sub:`an existential crisis in 6 acts`, intro_go:`breathe · tap to begin`,
+  outro_h1:`one must imagine<br>the <span class="y">mosquito</span> happy`, outro_sub:`— and you too.`, outro_go:`the end. (or the beginning.)&nbsp; · &nbsp;press R to revive`,
+  snd:`♪ music · M`, actfmt:`act {n} — {name}`,
+  n0:`the detonator`, n1:`insignificance`, n2:`the absurd`, n3:`the vertigo of freedom`, n4:`being-toward-death`, n5:`the revolt`,
+  rt0:`save it`, rs0:`tap the mosquito · try {n}/3`, rt1:`find yourself`, rs1:`tap the dot that is you`,
+  rt2:`get it to the summit`, rs2:`drag it upward · sustain the effort`, rt3:`choose`, rs3:`only one · the rest won't return`,
+  rt4:`keep it alive`, rs4:`tap it to revive it`, rt5:`build something`, rs5:`tap to create · leave your mark`,
+  m01:`It was Tuesday. Or Thursday. It doesn't matter.`, m02:`A mosquito was crossing the highway. For no reason. Like everything.`, m03:`Then — a truck.`,
+  m0fail:`You didn't make it. No one makes it.`, m0dead:`One instant it was buzzing.<br>The next: <b>nothing</b>.<br>The universe didn't blink.`,
+  m0you:`and what if <b class="accent">you</b> were the mosquito?`, m0touch:`You touched it. For a second you saved it.<br>Only, the second passes too.`,
+  m11:`Eight billion buzzes.<br>Each one sure it's the center.`, m1wrong:`That wasn't you.`, m1end:`None was special.<br>Neither are you.<br>And yet, <b>here you are, still looking</b>.`,
+  m21:`You wake. You work. You sleep. Repeat.`, m22:`You push the rock. The rock falls. You push again.`, m2win1:`You did it. And tomorrow the rock will be at the bottom again.`, m2win2:`It never stays up. <b>That's the point.</b>`, m2camus:`Camus smiles:<br><i>"The struggle itself toward the heights is enough to fill a heart."</i>`,
+  m31:`No one wrote the script.<br>You are condemned to be <b>free</b>.`, m32:`Every yes is a thousand noes.<br>Every door, a graveyard of doors.`, m3end:`You chose. You'll never know what was behind the others.<br>No one does. <b>That is living.</b>`,
+  m41:`Since the day you were born, something has been running out.<br>You can pretend it isn't. Most do.`, m4out1:`It went out. It was always going to.`, m4out2:`Death is not the enemy. It's the <b>frame</b>.<br>Without the border, the drawing doesn't exist.`,
+  m51:`The mosquito died meaningless. Like everyone.`, m52:`And precisely because of that — meaning isn't found. <b>It's made.</b>`, m5end:`It doesn't matter that no one sees it. <b>You</b> made it.<br>That is already revolt.`
+ },
+ pt:{
+  intro_h1:`um <span class="accent">mosquito</span><br>e uma caminhonete`, intro_sub:`uma crise existencial em 6 atos`, intro_go:`respire · toque para começar`,
+  outro_h1:`é preciso imaginar<br>o <span class="y">mosquito</span> feliz`, outro_sub:`— e você também.`, outro_go:`fim. (ou início.)&nbsp; · &nbsp;R para reviver`,
+  snd:`♪ música · M`, actfmt:`ato {n} — {name}`,
+  n0:`o detonador`, n1:`a insignificância`, n2:`o absurdo`, n3:`a vertigem da liberdade`, n4:`ser-para-a-morte`, n5:`a revolta`,
+  rt0:`salve-o`, rs0:`toque no mosquito · tentativa {n}/3`, rt1:`encontre-se`, rs1:`toque no ponto que é você`,
+  rt2:`leve-o ao cume`, rs2:`arraste para cima · sustente o esforço`, rt3:`escolha`, rs3:`apenas uma · as outras não voltam`,
+  rt4:`mantenha-o vivo`, rs4:`toque para reavivá-lo`, rt5:`construa algo`, rs5:`toque para criar · deixe sua marca`,
+  m01:`Era terça. Ou quinta. Tanto faz.`, m02:`Um mosquito atravessava a rodovia. Sem razão. Como tudo.`, m03:`Então — uma caminhonete.`,
+  m0fail:`Você não chegou. Ninguém chega.`, m0dead:`Um instante antes zumbia.<br>Um instante depois: <b>nada</b>.<br>O universo não piscou.`,
+  m0you:`e se <b class="accent">você</b> fosse o mosquito?`, m0touch:`Você o tocou. Por um segundo o salvou.<br>Só que o segundo também passa.`,
+  m11:`Oito bilhões de zumbidos.<br>Cada um certo de ser o centro.`, m1wrong:`Esse não era você.`, m1end:`Nenhum era especial.<br>Você também não.<br>E, mesmo assim, <b>aqui está você, ainda olhando</b>.`,
+  m21:`Você acorda. Trabalha. Dorme. Repete.`, m22:`Você empurra a pedra. A pedra cai. Você empurra de novo.`, m2win1:`Você conseguiu. E amanhã a pedra estará embaixo outra vez.`, m2win2:`Nunca fica no topo. <b>É esse o ponto.</b>`, m2camus:`Camus sorri:<br><i>«A própria luta em direção aos cumes basta para encher um coração.»</i>`,
+  m31:`Ninguém escreveu o roteiro.<br>Você está condenado a ser <b>livre</b>.`, m32:`Cada sim é mil nãos.<br>Cada porta, um cemitério de portas.`, m3end:`Você escolheu. Nunca saberá o que havia atrás das outras.<br>Ninguém sabe. <b>É isso, viver.</b>`,
+  m41:`Desde que você nasceu, algo se esgota.<br>Você pode fingir que não. A maioria finge.`, m4out1:`Apagou. Sempre ia apagar.`, m4out2:`A morte não é o inimigo. É a <b>moldura</b>.<br>Sem a borda, o desenho não existe.`,
+  m51:`O mosquito morreu sem sentido. Como todos.`, m52:`E é justamente por isso — o sentido não se encontra. <b>Fabrica-se.</b>`, m5end:`Não importa que ninguém veja. <b>Você</b> fez.<br>Isso já é revolta.`
+ },
+ ja:{
+  intro_h1:`一匹の<span class="accent">蚊</span>と<br>一台のトラック`, intro_sub:`6幕の実存的危機`, intro_go:`深呼吸して · タップして始める`,
+  outro_h1:`<span class="y">蚊</span>は幸福だと<br>想像しなければならない`, outro_sub:`— そしてあなたも。`, outro_go:`おわり。（あるいは、はじまり。）&nbsp; · &nbsp;R でリバイブ`,
+  snd:`♪ 音楽 · M`, actfmt:`第{n}幕 — {name}`,
+  n0:`引き金`, n1:`無意味さ`, n2:`不条理`, n3:`自由のめまい`, n4:`死へと向かう存在`, n5:`反抗`,
+  rt0:`救え`, rs0:`蚊をタップ · {n}/3 回目`, rt1:`自分を見つけろ`, rs1:`あなた自身である点をタップ`,
+  rt2:`頂上へ運べ`, rs2:`上へドラッグ · 力を保て`, rt3:`選べ`, rs3:`ひとつだけ · 他は戻らない`,
+  rt4:`生かし続けろ`, rs4:`タップして生き返らせる`, rt5:`何かを築け`, rs5:`タップして創る · 印を残せ`,
+  m01:`火曜日だった。あるいは木曜日。どうでもいい。`, m02:`一匹の蚊が幹線道路を渡っていた。理由もなく。すべてのように。`, m03:`そのとき——トラック。`,
+  m0fail:`間に合わなかった。誰も間に合わない。`, m0dead:`ついさっきまで羽音を立てていた。<br>次の瞬間には：<b>何もない</b>。<br>宇宙はまばたきひとつしなかった。`,
+  m0you:`もし<b class="accent">あなた</b>が蚊だったら?`, m0touch:`触れた。一瞬だけ救った。<br>ただ、その一瞬もまた過ぎ去る。`,
+  m11:`八十億の羽音。<br>どれもが自分こそ中心だと信じている。`, m1wrong:`それはあなたではなかった。`, m1end:`どれも特別ではなかった。<br>あなたも。<br>それでも、<b>あなたはこうして見つめ続けている</b>。`,
+  m21:`目覚める。働く。眠る。繰り返す。`, m22:`岩を押す。岩は落ちる。また押す。`, m2win1:`やり遂げた。そして明日、岩はまた下にある。`, m2win2:`決して上には留まらない。<b>それが要点だ。</b>`, m2camus:`カミュは微笑む：<br><i>「頂上を目指す闘いそれ自体が、人の心を満たすのに十分だ。」</i>`,
+  m31:`台本を書いた者はいない。<br>あなたは<b>自由</b>であるよう宣告されている。`, m32:`一つの「はい」は、千の「いいえ」。<br>どの扉も、扉たちの墓場。`, m3end:`あなたは選んだ。他の扉の向こうは決してわからない。<br>誰にもわからない。<b>それが生きるということ。</b>`,
+  m41:`生まれたときから、何かが尽きていく。<br>そうでないふりはできる。たいていはそうする。`, m4out1:`消えた。はじめから消える運命だった。`, m4out2:`死は敵ではない。それは<b>枠</b>だ。<br>縁がなければ、絵は存在しない。`,
+  m51:`蚊は意味もなく死んだ。誰もがそうであるように。`, m52:`そしてまさにそれゆえに——意味は見つけるものではない。<b>作るものだ。</b>`, m5end:`誰も見ていなくてもいい。<b>あなた</b>が作った。<br>それがもう反抗だ。`
+ },
+ fr:{
+  intro_h1:`un <span class="accent">moustique</span><br>et une camionnette`, intro_sub:`une crise existentielle en 6 actes`, intro_go:`respire · touche pour commencer`,
+  outro_h1:`il faut imaginer<br>le <span class="y">moustique</span> heureux`, outro_sub:`— et toi aussi.`, outro_go:`fin. (ou début.)&nbsp; · &nbsp;R pour revivre`,
+  snd:`♪ musique · M`, actfmt:`acte {n} — {name}`,
+  n0:`le détonateur`, n1:`l'insignifiance`, n2:`l'absurde`, n3:`le vertige de la liberté`, n4:`l'être-pour-la-mort`, n5:`la révolte`,
+  rt0:`sauve-le`, rs0:`touche le moustique · essai {n}/3`, rt1:`trouve-toi`, rs1:`touche le point qui est toi`,
+  rt2:`mène-le au sommet`, rs2:`fais-le glisser vers le haut · tiens l'effort`, rt3:`choisis`, rs3:`une seule · les autres ne reviennent pas`,
+  rt4:`garde-le en vie`, rs4:`touche-le pour le raviver`, rt5:`construis quelque chose`, rs5:`touche pour créer · laisse ta marque`,
+  m01:`C'était mardi. Ou jeudi. Peu importe.`, m02:`Un moustique traversait la route. Sans raison. Comme tout.`, m03:`Puis — une camionnette.`,
+  m0fail:`Tu n'y es pas arrivé. Personne n'y arrive.`, m0dead:`Un instant avant, il bourdonnait.<br>Un instant après : <b>rien</b>.<br>L'univers n'a pas cligné des yeux.`,
+  m0you:`et si <b class="accent">toi</b>, tu étais le moustique ?`, m0touch:`Tu l'as touché. Une seconde, tu l'as sauvé.<br>Seulement, la seconde passe aussi.`,
+  m11:`Huit milliards de bourdonnements.<br>Chacun certain d'être le centre.`, m1wrong:`Ce n'était pas toi.`, m1end:`Aucun n'était spécial.<br>Toi non plus.<br>Et pourtant, <b>te voilà, encore à regarder</b>.`,
+  m21:`Tu te réveilles. Tu travailles. Tu dors. Tu recommences.`, m22:`Tu pousses le rocher. Le rocher tombe. Tu pousses encore.`, m2win1:`Tu as réussi. Et demain le rocher sera de nouveau en bas.`, m2win2:`Il ne reste jamais en haut. <b>C'est là le point.</b>`, m2camus:`Camus sourit :<br><i>« La lutte elle-même vers les sommets suffit à remplir un cœur. »</i>`,
+  m31:`Personne n'a écrit le scénario.<br>Tu es condamné à être <b>libre</b>.`, m32:`Chaque oui est mille non.<br>Chaque porte, un cimetière de portes.`, m3end:`Tu as choisi. Tu ne sauras jamais ce qu'il y avait derrière les autres.<br>Personne ne le sait. <b>C'est cela, vivre.</b>`,
+  m41:`Depuis ta naissance, quelque chose s'épuise.<br>Tu peux faire comme si non. La plupart le font.`, m4out1:`Il s'est éteint. Il allait toujours s'éteindre.`, m4out2:`La mort n'est pas l'ennemie. C'est le <b>cadre</b>.<br>Sans la bordure, le dessin n'existe pas.`,
+  m51:`Le moustique est mort sans sens. Comme tout le monde.`, m52:`Et c'est justement pour ça — le sens ne se trouve pas. <b>Il se fabrique.</b>`, m5end:`Peu importe que personne ne le voie. C'est <b>toi</b> qui l'as fait.<br>C'est déjà une révolte.`
+ },
+ zh:{
+  intro_h1:`一只<span class="accent">蚊子</span><br>与一辆卡车`, intro_sub:`六幕存在主义危机`, intro_go:`深呼吸 · 轻触开始`,
+  outro_h1:`我们必须想象<br><span class="y">蚊子</span>是幸福的`, outro_sub:`— 你也一样。`, outro_go:`完。（或者，开始。）&nbsp; · &nbsp;按 R 复活`,
+  snd:`♪ 音乐 · M`, actfmt:`第 {n} 幕 — {name}`,
+  n0:`引信`, n1:`微不足道`, n2:`荒诞`, n3:`自由的眩晕`, n4:`向死而生`, n5:`反抗`,
+  rt0:`救它`, rs0:`轻触蚊子 · 第 {n}/3 次`, rt1:`找到你自己`, rs1:`轻触那个是你的点`,
+  rt2:`把它送上山顶`, rs2:`向上拖动 · 维持努力`, rt3:`选择`, rs3:`只能一个 · 其余不再回来`,
+  rt4:`让它活着`, rs4:`轻触以让它复苏`, rt5:`建造些什么`, rs5:`轻触以创造 · 留下你的印记`,
+  m01:`那是星期二。或者星期四。都无所谓。`, m02:`一只蚊子正穿过公路。毫无理由。就像一切。`, m03:`然后——一辆卡车。`,
+  m0fail:`你没能赶到。没有人能赶到。`, m0dead:`前一刻它还在嗡嗡作响。<br>后一刻：<b>什么都没有了</b>。<br>宇宙连眼睛都没眨一下。`,
+  m0you:`如果<b class="accent">你</b>就是那只蚊子呢?`, m0touch:`你触到了它。有那么一秒，你救了它。<br>只不过，那一秒也会过去。`,
+  m11:`八十亿声嗡鸣。<br>每一声都确信自己是中心。`, m1wrong:`那不是你。`, m1end:`没有一个是特别的。<br>你也不是。<br>然而，<b>你依旧在这里凝望</b>。`,
+  m21:`你醒来。工作。睡去。重复。`, m22:`你推动石头。石头滚落。你再推。`, m2win1:`你做到了。而明天，石头又会回到山脚。`, m2win2:`它从不停在顶上。<b>这正是关键。</b>`, m2camus:`加缪微笑着：<br><i>「向着顶峰的挣扎本身，就足以充实一个人的心。」</i>`,
+  m31:`没有人写下剧本。<br>你被判处<b>自由</b>。`, m32:`每一个「是」，都是一千个「否」。<br>每一扇门，都是众门的墓地。`, m3end:`你选择了。你永远不会知道其余门后有什么。<br>没有人知道。<b>这就是活着。</b>`,
+  m41:`从你出生那刻起，就有什么在耗尽。<br>你可以假装没有。多数人都这么做。`, m4out1:`它熄灭了。它本来就注定要熄灭。`, m4out2:`死亡不是敌人。它是<b>画框</b>。<br>没有边界，画就不存在。`,
+  m51:`蚊子毫无意义地死去。和每个人一样。`, m52:`而正因如此——意义不是被找到的。<b>是被创造的。</b>`, m5end:`没有人看见也没关系。是<b>你</b>创造了它。<br>这已经是反抗。`
+ }
+};
+let lang = localStorage.getItem('mosco.lang') || (navigator.language||'es').slice(0,2).toLowerCase();
+if(!L[lang]) lang='es';
+function t(k){ return (L[lang] && L[lang][k]!=null) ? L[lang][k] : (L.es[k]!=null ? L.es[k] : k); }
+function fmt(s,o){ return s.replace(/\{(\w+)\}/g,(_,k)=> (o&&o[k]!=null)? o[k] : ''); }
+
+// estado visible actual (para re-render al cambiar de idioma)
+const cur = { cap:null, rt:null, rs:null, rsArg:null, actN:null, actKey:null };
+
 let capTimer=null;
-function say(html, hold=0){
+function say(key, hold=0){
+  cur.cap=key;
   $cap.style.opacity=0;
   clearTimeout(capTimer);
-  capTimer=setTimeout(()=>{ $cap.innerHTML=html; $cap.style.opacity=1;
-    if(hold){ capTimer=setTimeout(()=>$cap.style.opacity=0, hold); } }, 380);
+  capTimer=setTimeout(()=>{ $cap.innerHTML=t(key); $cap.style.opacity=1;
+    if(hold){ capTimer=setTimeout(()=>{ $cap.style.opacity=0; cur.cap=null; }, hold); } }, 380);
 }
-function reto(title, sub=''){ $reto.innerHTML = title ? `${title}${sub?`<small>${sub}</small>`:''}` : ''; $reto.style.opacity = title?1:0; }
-function setAct(n,name){ $act.textContent = n!=null? `acto ${n} — ${name}` : ''; }
+function reto(titleKey, subKey='', arg=null){ cur.rt=titleKey||null; cur.rs=subKey||null; cur.rsArg=arg; renderReto(); }
+function renderReto(){
+  if(!cur.rt){ $reto.innerHTML=''; $reto.style.opacity=0; return; }
+  const sub = cur.rs ? `<small>${fmt(t(cur.rs), cur.rsArg)}</small>` : '';
+  $reto.innerHTML = `${t(cur.rt)}${sub}`; $reto.style.opacity=1;
+}
+function setAct(n,key){ cur.actN=n; cur.actKey=key; renderAct(); }
+function renderAct(){ $act.textContent = (cur.actN!=null) ? fmt(t('actfmt'), {n:cur.actN, name:t(cur.actKey)}) : ''; }
+
+function renderStatic(){
+  document.documentElement.lang = lang;
+  $intro.innerHTML = `<h1>${t('intro_h1')}</h1><p>${t('intro_sub')}</p><div class="go pulse">${t('intro_go')}</div>`;
+  $outro.innerHTML = `<h1>${t('outro_h1')}</h1><p>${t('outro_sub')}</p><div class="go">${t('outro_go')}</div>`;
+  const snd=document.getElementById('snd'), off=snd.classList.contains('off');
+  snd.textContent=t('snd'); snd.classList.toggle('off',off);
+}
+function setLang(code){
+  if(!L[code]) return; lang=code; try{ localStorage.setItem('mosco.lang',code); }catch(e){}
+  document.querySelectorAll('#lang button').forEach(b=>b.classList.toggle('on', b.dataset.l===code));
+  renderStatic(); renderAct(); renderReto();
+  if(cur.cap && $cap.style.opacity!=='0') $cap.innerHTML=t(cur.cap);
+}
+// wiring del selector (no debe disparar el juego)
+(function(){
+  const bar=document.getElementById('lang');
+  bar.addEventListener('pointerdown', e=>e.stopPropagation());
+  bar.addEventListener('pointerup', e=>e.stopPropagation());
+  bar.querySelectorAll('button').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); setLang(b.dataset.l); }));
+})();
+setLang(lang);   // pinta intro/outro/indicador en el idioma inicial
 async function fade(fn){
   $fade.style.opacity=1;
   await wait(620); fn(); await wait(220);
@@ -190,8 +343,8 @@ function clearGroup(){ group.clear(); A={}; }
 
 // ===== ACT 0 — el detonante =====
 function enter0(){
-  clearGroup(); setAct(0,'el detonante'); bg('#e9edf8');
-  say('Era martes. O jueves. Da igual.', 2600);
+  clearGroup(); setAct(0,'n0'); bg('#e9edf8');
+  say('m01', 2600);
   A.mosco = makeBlob('#272727',0.28,3); A.mosco.position.set(-3,-1,0); group.add(A.mosco);
   A.mvel = new THREE.Vector2((Math.random()-.5),(Math.random()-.5));
   // camioneta = luz cálida enorme, entra desde la derecha
@@ -200,14 +353,14 @@ function enter0(){
   const road=new THREE.Mesh(new THREE.PlaneGeometry(40,0.06), new THREE.MeshBasicMaterial({color:'#c9d4ea'}));
   road.position.set(0,-3.4,-2); group.add(road);
   A.tries=0; A.phase='tell'; A.tt=0;
-  setTimeout(()=>{ say('Un mosco cruzaba la carretera. Sin razón. Como todo.',3000);
+  setTimeout(()=>{ say('m02',3000);
     setTimeout(()=>startRun0(),3200); }, 2800);
 }
 function startRun0(){
   A.phase='run'; A.tt=0; A.truck.visible=true; A.truck.position.x=14;
   A.mosco.position.set(-3,-1+Math.random()*2,0); A.mosco.material.opacity=1; A.mosco.visible=true;
-  reto('sálvalo', `toca al mosco · intento ${A.tries+1}/3`);
-  say('Entonces — una camioneta.', 1600);
+  reto('rt0', 'rs0', {n:A.tries+1});
+  say('m03', 1600);
 }
 function update0(dt){
   if(A.phase!=='run') return;
@@ -228,11 +381,11 @@ function fail0(){
   A.phase='dead'; A.mosco.visible=false; reto(''); Audio.zap();
   A.tries++;
   if(A.tries<3){
-    say('No llegaste. Nadie llega.', 1900);
+    say('m0fail', 1900);
     setTimeout(()=>startRun0(), 2100);
   }else{
-    say('Un instante antes zumbaba.<br>Un instante después: <b>nada</b>.<br>El universo no parpadeó.');
-    setTimeout(()=> say('¿y si <b class="accent">tú</b> fueras el mosco?'), 4200);
+    say('m0dead');
+    setTimeout(()=> say('m0you'), 4200);
     setTimeout(()=> next(), 7200);
   }
 }
@@ -242,17 +395,17 @@ function click0(){
   if(d<0.9){ // "lo tocaste" — pero da igual, igual muere
     A.phase='dead'; A.mosco.visible=false; reto('');
     A.tries++;
-    say('Lo tocaste. Por un segundo lo salvaste.<br>Solo que el segundo también pasa.',2400);
+    say('m0touch',2400);
     if(A.tries<3) setTimeout(()=>startRun0(),2600);
-    else { setTimeout(()=>say('¿y si <b class="accent">tú</b> fueras el mosco?'),2600); setTimeout(()=>next(),6000); }
+    else { setTimeout(()=>say('m0you'),2600); setTimeout(()=>next(),6000); }
   }
 }
 
 // ===== ACT 1 — la insignificancia =====
 let dots, dotColorAccent=new THREE.Color('#007aff');
 function enter1(){
-  clearGroup(); setAct(1,'la insignificancia'); bg('#e6eaf6');
-  say('Ocho mil millones de zumbidos.<br>Cada uno seguro de ser el centro.',3400);
+  clearGroup(); setAct(1,'n1'); bg('#e6eaf6');
+  say('m11',3400);
   const N=260, g=new THREE.SphereGeometry(0.13,10,10);
   const mat=new THREE.MeshToonMaterial({gradientMap:gradMap});
   dots=new THREE.InstancedMesh(g,mat,N); dots.instanceColor=null;
@@ -263,7 +416,7 @@ function enter1(){
     dummy.updateMatrix(); dots.setMatrixAt(i,dummy.matrix); dots.setColorAt(i,base);
   }
   group.add(dots); A.tries=0;
-  setTimeout(()=>reto('encuéntrate','toca el punto que eres tú'),3600);
+  setTimeout(()=>reto('rt1','rs1'),3600);
 }
 function click1(){
   if(!dots) return;
@@ -272,23 +425,23 @@ function click1(){
   if(!hit) return;
   dots.setColorAt(hit.instanceId, dotColorAccent); dots.instanceColor.needsUpdate=true;
   A.tries++;
-  if(A.tries<3){ Audio.deny(); say('Ese no eras tú.',1500); }
+  if(A.tries<3){ Audio.deny(); say('m1wrong',1500); }
   else{
     Audio.pick();
     reto('');
-    say('Ninguno era especial.<br>Tampoco tú.<br>Y sin embargo, <b>aquí sigues mirando</b>.');
+    say('m1end');
     setTimeout(()=>next(),5200);
   }
 }
 
 // ===== ACT 2 — el absurdo (Sísifo) =====
 function enter2(){
-  clearGroup(); setAct(2,'el absurdo'); bg('#dfe3f2');
-  say('Despiertas. Trabajas. Duermes. Repites.',3000);
+  clearGroup(); setAct(2,'n2'); bg('#dfe3f2');
+  say('m21',3000);
   A.rock=makeBlob('#9984e8',1.1,0); A.rock.position.set(0,-3,0); group.add(A.rock);
   A.effort=0; A.grab=false; A.vy=0;
-  setTimeout(()=>{ say('Empujas la piedra. La piedra cae. Empujas otra vez.',3000);
-    reto('llévalo a la cima','arrástralo hacia arriba · sostén el esfuerzo'); },3200);
+  setTimeout(()=>{ say('m22',3000);
+    reto('rt2','rs2'); },3200);
 }
 function update2(dt){
   if(!A.rock) return;
@@ -311,17 +464,17 @@ function update2(dt){
   r.scale.setScalar(r.userData.base*(1+A.effort*0.05));
   if(A.effort>=2.0){
     A.rock=null; reto('');
-    say('Lo lograste. Y mañana la piedra estará abajo otra vez.',3200);
-    setTimeout(()=>say('Nunca se queda arriba. <b>Ese es el punto.</b>'),3400);
-    setTimeout(()=>say('Camus sonríe:<br><i>«La lucha hacia las cumbres basta para llenar un corazón.»</i>'),6800);
+    say('m2win1',3200);
+    setTimeout(()=>say('m2win2'),3400);
+    setTimeout(()=>say('m2camus'),6800);
     setTimeout(()=>next(),11200);
   }
 }
 
 // ===== ACT 3 — el vértigo de la libertad =====
 function enter3(){
-  clearGroup(); setAct(3,'el vértigo de la libertad'); bg('#d8dcee');
-  say('Nadie escribió el guion.<br>Estás condenado a ser <b>libre</b>.',3600);
+  clearGroup(); setAct(3,'n3'); bg('#d8dcee');
+  say('m31',3600);
   A.doors=[]; const n=5;
   for(let i=0;i<n;i++){
     const d=makeBlob(COLORS[i%COLORS.length],1.05,i);
@@ -329,8 +482,8 @@ function enter3(){
     group.add(d); A.doors.push(d);
   }
   A.chosen=false;
-  setTimeout(()=>{ say('Cada sí es mil noes.<br>Cada puerta, un cementerio de puertas.',3600);
-    reto('elige','solo una · las demás no vuelven'); },3800);
+  setTimeout(()=>{ say('m32',3600);
+    reto('rt3','rs3'); },3800);
 }
 function update3(dt){
   if(!A.doors) return;
@@ -346,17 +499,17 @@ function click3(){
   let picked=hit.object; while(picked.parent&&!A.doors.includes(picked)) picked=picked.parent;
   A.chosen=true; reto(''); Audio.choose();
   A.doors.forEach(d=>{ if(d!==picked) d.userData.dead=true; });
-  say('Elegiste. Nunca sabrás qué había detrás de las otras.<br>Nadie lo sabe. <b>Eso es vivir.</b>');
+  say('m3end');
   setTimeout(()=>next(),5400);
 }
 
 // ===== ACT 4 — ser-para-la-muerte =====
 function enter4(){
-  clearGroup(); setAct(4,'ser-para-la-muerte'); bg('#cdd2e6');
-  say('Desde que naciste, algo se agota.<br>Puedes fingir que no. La mayoría lo hace.',3800);
+  clearGroup(); setAct(4,'n4'); bg('#cdd2e6');
+  say('m41',3800);
   A.me=makeBlob('#df48ef',1.4,3); group.add(A.me);
   A.life=1; A.age=0; A.done=false;
-  setTimeout(()=>reto('mantenlo vivo','tócalo para reavivarlo'),3900);
+  setTimeout(()=>reto('rt4','rs4'),3900);
 }
 function update4(dt){
   if(!A.me||A.done) return;
@@ -367,8 +520,8 @@ function update4(dt){
   A.me.rotation.y+=dt*0.6;
   if(A.life<=0){
     A.done=true; reto(''); A.me.visible=false;
-    say('Se apagó. Siempre iba a apagarse.',3200);
-    setTimeout(()=>say('La muerte no es el enemigo. Es el <b>marco</b>.<br>Sin el borde, el dibujo no existe.'),3400);
+    say('m4out1',3200);
+    setTimeout(()=>say('m4out2'),3400);
     setTimeout(()=>next(),8200);
   }
 }
@@ -381,11 +534,11 @@ function click4(){
 
 // ===== ACT 5 — la revuelta =====
 function enter5(){
-  clearGroup(); setAct(5,'la revuelta'); bg('#eef1fb');
-  say('El mosco murió sin sentido. Como todos.',3200);
+  clearGroup(); setAct(5,'n5'); bg('#eef1fb');
+  say('m51',3200);
   A.made=[]; A.lines=null;
-  setTimeout(()=>{ say('Y justo por eso — el sentido no se encuentra. <b>Se fabrica.</b>',3600);
-    reto('construye algo','toca para crear · deja tu marca'); },3400);
+  setTimeout(()=>{ say('m52',3600);
+    reto('rt5','rs5'); },3400);
 }
 function click5(){
   if(A.made.length>=9) return;
@@ -409,7 +562,7 @@ function finishStory(){
   const lg=new THREE.BufferGeometry().setFromPoints(pts);
   A.lines=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:'#272727',transparent:true,opacity:0.35}));
   group.add(A.lines);
-  say('No importa que nadie lo vea. Lo hiciste <b>tú</b>.<br>Eso ya es rebelión.');
+  say('m5end');
   setTimeout(()=>{ $cap.style.opacity=0; setAct(null); ACT=6; storyDone=true;
     $outro.style.opacity=1; }, 5200);
 }
