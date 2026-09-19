@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ぷかぷか · floating toy world</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Londrina+Solid:wght@100;300;400;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#eef1f9; --bg2:#dfe6f6; --ink:#272727; --accent:#007aff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg1);cursor:none}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* --- UI overlay --- */
+  .ui{position:fixed;inset:0;pointer-events:none;font-family:"Londrina Solid",system-ui,sans-serif;color:var(--ink)}
+  .brand{position:absolute;top:26px;left:32px;font-weight:900;font-size:26px;letter-spacing:.5px}
+  .brand small{display:block;font-weight:300;font-size:13px;letter-spacing:3px;opacity:.6;margin-top:-4px}
+  .nav{position:absolute;top:30px;right:32px;display:flex;gap:22px;font-weight:400;font-size:17px}
+  .nav span{opacity:.55}
+  .hero{position:absolute;left:0;right:0;bottom:12%;text-align:center;padding:0 20px}
+  .hero h1{font-weight:900;font-size:clamp(48px,11vw,150px);line-height:.86;letter-spacing:1px}
+  .hero h1 .b{color:var(--accent)}
+  .hero h1 .y{color:#f2d21a;-webkit-text-stroke:2px var(--ink)}
+  .hero p{font-weight:300;font-size:clamp(14px,2vw,20px);letter-spacing:2px;margin-top:14px;opacity:.7}
+  .hint{position:absolute;bottom:24px;left:0;right:0;text-align:center;font-weight:300;font-size:13px;letter-spacing:3px;opacity:.45;text-transform:uppercase}
+
+  /* --- custom hand cursor --- */
+  #cursor{position:fixed;top:0;left:0;width:44px;height:44px;pointer-events:none;z-index:50;
+          transform:translate(-8px,-4px) rotate(-12deg);transition:transform .12s ease-out;will-change:transform}
+  #cursor svg{width:100%;height:100%;filter:drop-shadow(0 3px 4px rgba(40,40,60,.18))}
+  body.grab #cursor{transform:translate(-8px,-4px) rotate(-12deg) scale(.82)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="ui">
+  <div class="brand">ぷかぷか<small>PUKA&nbsp;PUKA</small></div>
+  <div class="nav"><span>works</span><span>about</span><span>contact</span></div>
+  <div class="hero">
+    <h1><span class="b">float</span> your<br><span class="y">little</span> world</h1>
+    <p>drag the blobs · toss them around</p>
+  </div>
+  <div class="hint">✿ grab &amp; fling anything ✿</div>
+</div>
+
+<div id="cursor">
+  <svg viewBox="0 0 64 64" fill="#fff" stroke="#272727" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M26 8c0-3 5-3 5 0v20l3-9c1-3 6-2 5 1l-1 7 4-4c2-2 6 1 4 4l-3 5 4-1c3-1 5 3 2 5l-9 6c-3 2-4 6-9 6h-6c-4 0-7-2-9-6l-7-13c-2-3 3-6 5-3l4 5V16c0-3 5-3 5 0v8h5V8z"/>
+  </svg>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const app = document.getElementById('app');
+const cursorEl = document.getElementById('cursor');
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 0, 16);
+
+// soft gradient background as a fullscreen sprite behind everything
+scene.background = new THREE.Color('#e9edf8');
+
+// ---------- lights (flat cartoon look) ----------
+scene.add(new THREE.HemisphereLight('#ffffff', '#c9d4ea', 1.05));
+const key = new THREE.DirectionalLight('#ffffff', 1.1);
+key.position.set(4, 8, 6);
+scene.add(key);
+
+// toon gradient map for the cel-shaded flat look
+const grad = new Uint8Array([90,160,220,255]);
+const gradMap = new THREE.DataTexture(grad, grad.length, 1, THREE.RedFormat);
+gradMap.needsUpdate = true;
+
+// ---------- palette from ketakuma ----------
+const COLORS = ['#faf56c','#9984e8','#df48ef','#b3d4fc','#007aff','#96aee6','#ffffff','#c9d4ea'];
+
+// ---------- build floating toys with comic outline ----------
+const OUTLINE = new THREE.MeshBasicMaterial({ color:'#272727', side:THREE.BackSide });
+const toys = [];
+
+function geo(i){
+  switch(i % 5){
+    case 0: return new THREE.IcosahedronGeometry(1, 1);        // faceted blob
+    case 1: return new THREE.TorusGeometry(0.8, 0.36, 16, 32); // donut
+    case 2: return new THREE.CapsuleGeometry(0.55, 0.9, 8, 16);// pill
+    case 3: return new THREE.SphereGeometry(1, 24, 24);        // ball
+    default:return new THREE.ConeGeometry(0.9, 1.5, 24);       // cone
+  }
+}
+
+const R = 7;                                   // spread radius
+const N = 15;
+for(let i=0;i<N;i++){
+  const g = geo(i);
+  const mat = new THREE.MeshToonMaterial({ color: COLORS[i % COLORS.length], gradientMap: gradMap });
+  const mesh = new THREE.Mesh(g, mat);
+
+  // comic outline via inverted back-face hull
+  const outline = new THREE.Mesh(g, OUTLINE);
+  outline.scale.setScalar(1.08);
+  mesh.add(outline);
+
+  const s = 0.6 + Math.random()*0.9;
+  mesh.scale.setScalar(s);
+
+  const home = new THREE.Vector3(
+    (Math.random()*2-1)*R,
+    (Math.random()*2-1)*R*0.55,
+    (Math.random()*2-1)*3
+  );
+  mesh.position.copy(home);
+  mesh.rotation.set(Math.random()*6, Math.random()*6, Math.random()*6);
+
+  mesh.userData = {
+    home, s,
+    vel: new THREE.Vector3(),
+    target: home.clone(),
+    phase: Math.random()*Math.PI*2,
+    spin: new THREE.Vector3((Math.random()-.5)*0.01,(Math.random()-.5)*0.01,(Math.random()-.5)*0.01),
+    hover: 0
+  };
+  scene.add(mesh);
+  toys.push(mesh);
+}
+
+// ---------- interaction: hover / drag / fling with spring ----------
+const ray = new THREE.Raycaster();
+const ptr = new THREE.Vector2();
+const ptrPx = { x: innerWidth/2, y: innerHeight/2 };
+const dragPlane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
+const hitPoint = new THREE.Vector3();
+let grabbed = null;
+let lastDrag = new THREE.Vector3();
+
+function setPtr(e){
+  ptrPx.x = e.clientX; ptrPx.y = e.clientY;
+  ptr.x = (e.clientX/innerWidth)*2 - 1;
+  ptr.y = -(e.clientY/innerHeight)*2 + 1;
+}
+
+addEventListener('pointermove', (e)=>{
+  setPtr(e);
+  if(grabbed){
+    dragPlane.constant = -grabbed.position.z;
+    ray.setFromCamera(ptr, camera);
+    ray.ray.intersectPlane(dragPlane, hitPoint);
+    grabbed.userData.target.copy(hitPoint);
+  }
+});
+
+addEventListener('pointerdown', (e)=>{
+  setPtr(e);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(toys, false)[0];
+  if(hit){
+    grabbed = hit.object;
+    lastDrag.copy(grabbed.position);
+    document.body.classList.add('grab');
+  }
+});
+
+addEventListener('pointerup', ()=>{
+  if(grabbed){
+    // fling: carry the drag velocity, then spring home
+    grabbed.userData.vel.copy(grabbed.position).sub(lastDrag).multiplyScalar(6);
+    grabbed.userData.target.copy(grabbed.userData.home);
+    grabbed = null;
+    document.body.classList.remove('grab');
+  }
+});
+
+// ---------- resize ----------
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- animation loop ----------
+const clock = new THREE.Clock();
+function tick(){
+  const t = clock.getElapsedTime();
+  const dt = Math.min(clock.getDelta(), 0.033);
+
+  // camera parallax follows cursor gently
+  camera.position.x += (ptr.x*2.2 - camera.position.x)*0.04;
+  camera.position.y += (ptr.y*1.4 - camera.position.y)*0.04;
+  camera.lookAt(0,0,0);
+
+  // hover detection (skip while dragging)
+  let hoverObj = null;
+  if(!grabbed){
+    ray.setFromCamera(ptr, camera);
+    hoverObj = ray.intersectObjects(toys, false)[0]?.object || null;
+  }
+  document.body.classList.toggle('grab', !!hoverObj || !!grabbed);
+
+  for(const m of toys){
+    const u = m.userData;
+
+    if(m === grabbed){
+      lastDrag.copy(m.position);
+      m.position.lerp(u.target, 0.35);          // snappy follow
+    }else{
+      // idle bob around target
+      const bob = Math.sin(t*0.9 + u.phase)*0.12;
+      const goal = u.target.clone(); goal.y += bob;
+      // critically-ish damped spring → bouncy return / settle
+      u.vel.add(goal.clone().sub(m.position).multiplyScalar(0.06));
+      u.vel.multiplyScalar(0.86);
+      m.position.add(u.vel.clone().multiplyScalar(dt*60));
+    }
+
+    // hover pop
+    u.hover += (((m===hoverObj)?1:0) - u.hover)*0.15;
+    const pop = u.s * (1 + u.hover*0.18);
+    m.scale.setScalar(pop);
+
+    // lazy spin
+    m.rotation.x += u.spin.x + u.hover*0.02;
+    m.rotation.y += u.spin.y + u.hover*0.02;
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+
+// ---------- custom cursor follow ----------
+function cur(){
+  cursorEl.style.left = ptrPx.x + 'px';
+  cursorEl.style.top  = ptrPx.y + 'px';
+  requestAnimationFrame(cur);
+}
+cur();
+</script>
+</body>
+</html>
