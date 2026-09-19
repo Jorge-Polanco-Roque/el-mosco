@@ -4,6 +4,8 @@
 
 ### *uma crise existencial em 6 atos*
 
+**[▶ Jogar online](https://jorge-polanco-roque.github.io/el-mosco/)**
+
 **Uma história interativa fofa e brutal.** Estética kawaii pastel como cavalo de Troia do abismo.
 Você avança cumprindo desafios — cada um faz você *sentir* nas mãos uma etapa da crise.
 

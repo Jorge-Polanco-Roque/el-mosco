@@ -4,6 +4,8 @@
 
 ### *an existential crisis in 6 acts*
 
+**[▶ Play it live](https://jorge-polanco-roque.github.io/el-mosco/)**
+
 **A cute-brutal interactive story.** Kawaii pastel visuals as a Trojan horse for the abyss.
 You advance by completing challenges — each one *makes you feel* a stage of the crisis in your own hands.
 
