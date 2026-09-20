@@ -410,20 +410,27 @@ function enter1(){
   const mat=new THREE.MeshToonMaterial({gradientMap:gradMap});
   dots=new THREE.InstancedMesh(g,mat,N); dots.instanceColor=null;
   const dummy=new THREE.Object3D(), base=new THREE.Color('#8f9bbf');
+  A.pos=[];
   for(let i=0;i<N;i++){
     const r=Math.sqrt(Math.random())*7, a=Math.random()*Math.PI*2;
     dummy.position.set(Math.cos(a)*r, Math.sin(a)*r*0.62, (Math.random()-.5)*1.5);
     dummy.updateMatrix(); dots.setMatrixAt(i,dummy.matrix); dots.setColorAt(i,base);
+    A.pos.push(dummy.position.clone());
   }
   group.add(dots); A.tries=0;
   setTimeout(()=>reto('rt1','rs1'),3600);
 }
 function click1(){
-  if(!dots) return;
-  ray.setFromCamera(ptr,camera);
-  const hit=ray.intersectObject(dots)[0];
-  if(!hit) return;
-  dots.setColorAt(hit.instanceId, dotColorAccent); dots.instanceColor.needsUpdate=true;
+  if(!dots||!A.pos) return;
+  // el punto más cercano al cursor (en pantalla) — cualquier clic acierta
+  const v=new THREE.Vector3(); let best=-1, bd=Infinity;
+  for(let i=0;i<A.pos.length;i++){
+    v.copy(A.pos[i]).project(camera);
+    const dx=v.x-ptr.x, dy=v.y-ptr.y, d=dx*dx+dy*dy;
+    if(d<bd){ bd=d; best=i; }
+  }
+  if(best<0) return;
+  dots.setColorAt(best, dotColorAccent); dots.instanceColor.needsUpdate=true;
   A.tries++;
   if(A.tries<3){ Audio.deny(); say('m1wrong',1500); }
   else{
